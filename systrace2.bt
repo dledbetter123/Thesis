@@ -1,0 +1,325 @@
+#!/usr/bin/env bpftrace
+
+#include <linux/sched.h>
+
+// Use ring buffer for better performance
+#define BPFTRACE_RINGBUF 1
+#define BPFTRACE_RINGBUF_SIZE_MB 64
+
+// File operations
+tracepoint:syscalls:sys_enter_open
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: open, Path: %s, Flags: %d Mode: %x\n",
+           nsecs, pid, comm,
+           str(args->filename), args->flags, args->mode);
+}
+
+tracepoint:syscalls:sys_enter_openat
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: openat, Path: %s, Flags: %d Mode: %x\n",
+           nsecs, pid, comm,
+           str(args->filename), args->flags, args->mode);
+}
+
+// File permission operations
+tracepoint:syscalls:sys_enter_chmod
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: chmod, Path: %s Mode: %x\n",
+           nsecs, pid, comm,
+           str(args->filename), args->mode);
+}
+
+tracepoint:syscalls:sys_enter_chown
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: chown, Path: %s, UID: %d, GID: %d\n",
+           nsecs, pid, comm,
+           str(args->filename), args->user, args->group);
+}
+
+tracepoint:syscalls:sys_enter_rename
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: rename, Old: %s, New: %s\n",
+           nsecs, pid, comm,
+           str(args->oldname), str(args->newname));
+}
+
+// Read/Write operations
+tracepoint:syscalls:sys_enter_read
+/comm != "bpftrace" && comm != "sudo" && comm != "sshd"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: read, FD: %d, Count: %d\n",
+           nsecs, pid, comm,
+           args->fd, args->count);
+}
+
+tracepoint:syscalls:sys_enter_write
+/comm != "bpftrace" && comm != "sudo" && comm != "sshd"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: write, FD: %d, Count: %d\n",
+           nsecs, pid, comm,
+           args->fd, args->count);
+}
+
+// Memory mapping
+tracepoint:syscalls:sys_enter_mmap
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: mmap, Addr: %lx, Length: %lu, Prot: %d, Flags: %d, Fd: %d, Offset: %lu\n",
+           nsecs, pid, comm,
+           args->addr, args->len, args->prot, args->flags, args->fd, args->off);
+}
+
+// Process creation
+tracepoint:syscalls:sys_enter_clone
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: clone, Flags: %lx, Stack: %lx, Parent TID: %lx\n",
+           nsecs, pid, comm,
+           args->clone_flags, args->newsp, args->parent_tidptr);
+}
+
+tracepoint:syscalls:sys_enter_fork
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: fork\n",
+           nsecs, pid, comm);
+}
+
+tracepoint:syscalls:sys_enter_vfork
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: vfork\n",
+           nsecs, pid, comm);
+}
+
+// Process execution
+tracepoint:syscalls:sys_enter_execve
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: execve, Path: %s\n",
+           nsecs, pid, comm,
+           str(args->filename));
+}
+
+tracepoint:syscalls:sys_enter_execveat
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: execveat, Path: %s, Flags: %d\n",
+           nsecs, pid, comm,
+           str(args->filename), args->flags);
+}
+
+// Socket operations
+tracepoint:syscalls:sys_enter_socket
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: socket, Family: %d, Type: %d, Protocol: %d\n",
+           nsecs, pid, comm, args->family, args->type, args->protocol);
+}
+
+// Connection operations
+tracepoint:syscalls:sys_enter_connect
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: connect, FD: %d, Addrlen: %d\n",
+           nsecs, pid, comm, args->fd, args->addrlen);
+}
+
+tracepoint:syscalls:sys_enter_accept
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: accept, FD: %d\n",
+           nsecs, pid, comm, args->fd);
+}
+
+tracepoint:syscalls:sys_enter_accept4
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: accept4, FD: %d, Flags: %d\n",
+           nsecs, pid, comm, args->fd, args->flags);
+}
+
+// Data transfer operations
+tracepoint:syscalls:sys_enter_sendto
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: sendto, FD: %d, Len: %d\n",
+           nsecs, pid, comm, args->fd, args->len);
+}
+
+tracepoint:syscalls:sys_enter_sendmsg
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: sendmsg, FD: %d, MSGHDR: %lx\n",
+           nsecs, pid, comm, args->fd, args->msg);
+}
+
+tracepoint:syscalls:sys_enter_recvfrom
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: recvfrom, FD: %d, Size: %d\n",
+           nsecs, pid, comm, args->fd, args->size);
+}
+
+tracepoint:syscalls:sys_enter_recvmsg
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: recvmsg, FD: %d, MSGHDR: %lx\n",
+           nsecs, pid, comm, args->fd, args->msg);
+}
+
+// Additional network syscalls
+tracepoint:syscalls:sys_enter_bind
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: bind, FD: %d, Addrlen: %d\n",
+           nsecs, pid, comm, args->fd, args->addrlen);
+}
+
+tracepoint:syscalls:sys_enter_listen
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: listen, FD: %d, Backlog: %d\n",
+           nsecs, pid, comm, args->fd, args->backlog);
+}
+
+tracepoint:syscalls:sys_enter_shutdown
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: shutdown, FD: %d, How: %d\n",
+           nsecs, pid, comm, args->fd, args->how);
+}
+
+// File system operations
+tracepoint:syscalls:sys_enter_mkdir
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: mkdir, Path: %s, Mode: %x\n",
+           nsecs, pid, comm,
+           str(args->pathname), args->mode);
+}
+
+tracepoint:syscalls:sys_enter_rmdir
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: rmdir, Path: %s\n",
+           nsecs, pid, comm,
+           str(args->pathname));
+}
+
+tracepoint:syscalls:sys_enter_unlink
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: unlink, Path: %s\n",
+           nsecs, pid, comm,
+           str(args->pathname));
+}
+
+// Process signals
+tracepoint:syscalls:sys_enter_kill
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: kill, Target PID: %d, Signal: %d\n",
+           nsecs, pid, comm,
+           args->pid, args->sig);
+}
+
+// Persistence and privilege escalation
+tracepoint:syscalls:sys_enter_setuid
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: setuid, UID: %d\n",
+           nsecs, pid, comm, args->uid);
+}
+
+tracepoint:syscalls:sys_enter_setgid
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: setgid, GID: %d\n",
+           nsecs, pid, comm, args->gid);
+}
+
+tracepoint:syscalls:sys_enter_setreuid
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: setreuid, RUID: %d, EUID: %d\n",
+           nsecs, pid, comm, args->ruid, args->euid);
+}
+
+tracepoint:syscalls:sys_enter_setregid
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: setregid, RGID: %d, EGID: %d\n",
+           nsecs, pid, comm, args->rgid, args->egid);
+}
+
+// Process manipulation and injection
+tracepoint:syscalls:sys_enter_ptrace
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: ptrace, Request: %ld, Target PID: %ld\n",
+           nsecs, pid, comm, args->request, args->pid);
+}
+
+// Module loading (for rootkits)
+tracepoint:syscalls:sys_enter_init_module
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: init_module, Args: %s\n",
+           nsecs, pid, comm, str(args->uargs));
+}
+
+tracepoint:syscalls:sys_enter_finit_module
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: finit_module, Args: %s, Flags: %d\n",
+           nsecs, pid, comm, str(args->uargs), args->flags);
+}
+
+tracepoint:syscalls:sys_enter_delete_module
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: delete_module, Name: %s, Flags: %d\n",
+           nsecs, pid, comm, str(args->name_user), args->flags);
+}
+
+// System information gathering
+tracepoint:syscalls:sys_enter_newuname
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: newuname\n",
+           nsecs, pid, comm);
+}
+
+tracepoint:syscalls:sys_enter_sysinfo
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: sysinfo\n",
+           nsecs, pid, comm);
+}
+
+tracepoint:syscalls:sys_enter_prlimit64
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: prlimit64, Resource: %d\n",
+           nsecs, pid, comm, args->resource);
+}
+
+tracepoint:sched:sched_process_fork
+/comm != "bpftrace"/
+{
+    printf("[%d] Child PID: %d, Parent PID: %d, Child Comm: %s, Parent Comm: %s\n",
+           nsecs, args->child_pid, args->parent_pid, args->child_comm, args->parent_comm);
+}
+
+tracepoint:syscalls:sys_enter_close
+/comm != "bpftrace"/
+{
+    printf("[%d] PID: %d, Comm: %s, Syscall: close, FD: %d\n",
+           nsecs, pid, comm, args->fd);
+}
